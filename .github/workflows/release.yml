@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists"
+          else
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "xclean $tag" \
+              --notes "Automated release for $tag."
+          fi
+
+  build-and-upload:
+    needs: create-release
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64
+            triple: arm64-apple-macosx13.0
+            build_dir: arm64-apple-macosx
+          - arch: x86_64
+            triple: x86_64-apple-macosx13.0
+            build_dir: x86_64-apple-macosx
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          out_dir="$GITHUB_WORKSPACE/dist"
+          stage_dir="$out_dir/xclean-$version-macos-${{ matrix.arch }}"
+
+          rm -rf "$out_dir"
+          mkdir -p "$stage_dir"
+
+          swift build -c release --triple "${{ matrix.triple }}" --product xclean
+          cp "$GITHUB_WORKSPACE/.build/${{ matrix.build_dir }}/release/xclean" "$stage_dir/xclean"
+          cp "$GITHUB_WORKSPACE/README.md" "$stage_dir/README.md"
+
+          (
+            cd "$out_dir"
+            tar -czf "xclean-$version-macos-${{ matrix.arch }}.tar.gz" "$(basename "$stage_dir")"
+            cp "xclean-$version-macos-${{ matrix.arch }}.tar.gz" "xclean-macos-${{ matrix.arch }}.tar.gz"
+          )
+
+          shasum -a 256 \
+            "$out_dir/xclean-$version-macos-${{ matrix.arch }}.tar.gz" \
+            "$out_dir/xclean-macos-${{ matrix.arch }}.tar.gz" \
+            > "$out_dir/sha256sums-${{ matrix.arch }}.txt"
+
+      - name: Upload release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          version="${GITHUB_REF_NAME#v}"
+          gh release upload "$tag" \
+            "dist/xclean-$version-macos-${{ matrix.arch }}.tar.gz" \
+            "dist/xclean-macos-${{ matrix.arch }}.tar.gz" \
+            "dist/sha256sums-${{ matrix.arch }}.txt" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+  merge-checksums:
+    needs: build-and-upload
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download per-arch checksum files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p dist
+          gh release download "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "sha256sums-*.txt" \
+            --dir dist
+          cat dist/sha256sums-*.txt > dist/sha256sums.txt
+
+      - name: Upload merged checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          gh release upload "$tag" \
+            dist/sha256sums.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
