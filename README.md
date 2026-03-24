@@ -4,16 +4,23 @@
 
 ## Install
 
+Remote install:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+```
+
+Pin to a specific release:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | \
+  XCLEAN_INSTALL_VERSION=v0.1.1 bash
+```
+
 Local development install:
 
 ```bash
 bash install.sh
-```
-
-Remote install pattern:
-
-```bash
-curl -fsSL https://your-domain/install.sh | bash
 ```
 
 The installer:
@@ -25,12 +32,12 @@ The installer:
 You can override defaults:
 
 ```bash
-XCLEAN_RELEASE_BASE_URL=https://github.com/your-org/xclean/releases \
+XCLEAN_RELEASE_BASE_URL=https://github.com/creeveliu/xclean/releases \
 XCLEAN_INSTALL_VERSION=latest \
 XCLEAN_REPO_URL=https://github.com/creeveliu/xclean.git \
 XCLEAN_INSTALL_REF=main \
 XCLEAN_INSTALL_DIR="$HOME/.local/bin" \
-curl -fsSL https://your-domain/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
 ```
 
 ## Usage
@@ -75,16 +82,22 @@ For GitHub Releases, upload at least:
 
 ## Publishing `curl | bash`
 
-To ship the installer in the form:
+Current public installer:
 
 ```bash
-curl -fsSL https://your-domain/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
 ```
 
-do this:
+Current release page:
+
+```text
+https://github.com/creeveliu/xclean/releases
+```
+
+If you later move the installer to your own domain, do this:
 
 1. Host `install.sh` at a stable URL.
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.
 3. Upload prebuilt archives named `xclean-macos-arm64.tar.gz` and `xclean-macos-x86_64.tar.gz`.
 4. Optionally keep `XCLEAN_REPO_URL` and `XCLEAN_INSTALL_REF` for source-build fallback.
-5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.0`.
+5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.1`.
