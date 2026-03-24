@@ -53,8 +53,33 @@ xclean uninstall
 xclean --version
 ```
 
-`xclean update` 会重新执行安装脚本，并在当前安装目录中替换现有二进制文件。  
-`xclean uninstall` 会删除当前二进制文件；如果安装目录变为空，也会一并删除该目录。
+各个命令的作用：
+
+- `xclean`
+  启动交互式清理流程。大多数情况下直接运行这个命令就够了。
+- `xclean clean`
+  与 `xclean` 相同，只是用更明确的命令名表示“进入交互式清理”。
+- `xclean scan`
+  只扫描可清理的 Xcode 相关垃圾文件并输出结果，不会执行删除。
+- `xclean update`
+  重新执行安装脚本，并在当前安装目录中替换现有二进制文件。
+- `xclean uninstall`
+  删除当前二进制文件；如果安装目录变为空，也会一并删除该目录。
+- `xclean --version`
+  输出当前已安装版本。
+
+常见用法示例：
+
+```bash
+# 先看看大概能清掉多少空间
+xclean scan
+
+# 进入交互式界面，按提示选择要删的内容
+xclean
+
+# 在当前安装位置更新到最新版本
+xclean update
+```
 
 ## 截图
 

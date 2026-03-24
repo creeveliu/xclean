@@ -53,8 +53,33 @@ xclean uninstall
 xclean --version
 ```
 
-`xclean update` reruns the installer and replaces the current binary in the same install directory.
-`xclean uninstall` removes the current binary and deletes the install directory if it becomes empty.
+What each command does:
+
+- `xclean`
+  Starts the interactive cleanup flow. This is the normal command most people should run.
+- `xclean clean`
+  Same as `xclean`. Kept as an explicit command name for interactive cleanup.
+- `xclean scan`
+  Scans supported Xcode junk paths and prints what can be cleaned, without deleting anything.
+- `xclean update`
+  Reruns the installer and replaces the current binary in the same install directory.
+- `xclean uninstall`
+  Removes the current binary and deletes the install directory if it becomes empty.
+- `xclean --version`
+  Prints the installed version.
+
+Typical examples:
+
+```bash
+# Just check how much space can be reclaimed
+xclean scan
+
+# Review items interactively and choose what to delete
+xclean
+
+# Reinstall the latest version into the current install location
+xclean update
+```
 
 ## Screenshot
 
