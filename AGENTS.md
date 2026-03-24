@@ -20,7 +20,7 @@
 ## Current Version
 
 - Source version is defined in `Sources/XCleanCore/CLI.swift`
-- Latest released version at time of writing: `0.1.3`
+- Latest released version at time of writing: `0.1.4`
 
 ## Architecture
 
@@ -85,7 +85,7 @@ Release packaging script:
 Build command:
 
 ```bash
-bash scripts/build-release.sh 0.1.3
+bash scripts/build-release.sh 0.1.4
 ```
 
 ## Testing and Verification
@@ -115,6 +115,7 @@ Manual release flow currently works and has been used for:
 - `v0.1.1`
 - `v0.1.2`
 - `v0.1.3`
+- `v0.1.4`
 
 Current manual sequence:
 

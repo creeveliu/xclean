@@ -2,6 +2,8 @@
 
 `xclean` is a lightweight macOS Swift CLI for interactively cleaning common Xcode junk files.
 
+[中文说明](./README.zh-CN.md)
+
 ## Install
 
 Remote install:
@@ -14,7 +16,7 @@ Pin to a specific release:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | \
-  XCLEAN_INSTALL_VERSION=v0.1.3 bash
+  XCLEAN_INSTALL_VERSION=v0.1.4 bash
 ```
 
 Local development install:
@@ -137,4 +139,4 @@ If you later move the installer to your own domain, do this:
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.
 3. Upload prebuilt archives named `xclean-macos-arm64.tar.gz` and `xclean-macos-x86_64.tar.gz`.
 4. Optionally keep `XCLEAN_REPO_URL` and `XCLEAN_INSTALL_REF` for source-build fallback.
-5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.3`.
+5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.4`.
