@@ -56,6 +56,12 @@ xclean --version
 `xclean update` reruns the installer and replaces the current binary in the same install directory.
 `xclean uninstall` removes the current binary and deletes the install directory if it becomes empty.
 
+## Screenshot
+
+Interactive cleanup prompt with Simplified Chinese localization:
+
+![Interactive cleanup screenshot](docs/screenshots/interactive-cleanup-zh.png)
+
 ## Interactive Cleanup
 
 The interactive flow is organized by cleanup impact instead of Xcode internals:

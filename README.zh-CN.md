@@ -56,6 +56,12 @@ xclean --version
 `xclean update` 会重新执行安装脚本，并在当前安装目录中替换现有二进制文件。  
 `xclean uninstall` 会删除当前二进制文件；如果安装目录变为空，也会一并删除该目录。
 
+## 截图
+
+下面是简体中文环境下的交互式清理界面：
+
+![xclean 交互式清理截图](docs/screenshots/interactive-cleanup-zh.png)
+
 ## 交互式清理
 
 交互式流程按清理影响来组织，而不是按 Xcode 的内部结构来分类：
