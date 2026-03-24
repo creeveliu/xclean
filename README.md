@@ -54,6 +54,36 @@ xclean --version
 `xclean update` reruns the installer and replaces the current binary in the same install directory.
 `xclean uninstall` removes the current binary and deletes the install directory if it becomes empty.
 
+## Interactive Cleanup
+
+The interactive flow is organized by cleanup impact instead of Xcode internals:
+
+- `Safe Cleanup`
+  Good first choice. These items are temporary caches that will be rebuilt automatically when needed.
+- `Clean If Needed`
+  Usually safe to delete, but some related files may need to be rebuilt or downloaded again later.
+- `Careful Cleanup`
+  Still valid to clean, but you should decide item-by-item because it may remove simulator-local environments or test data.
+
+Examples:
+
+- `DerivedData`, `UserData/Previews`, and unavailable simulators appear in `Safe Cleanup`
+- documentation cache, device support files, and logs appear in `Clean If Needed`
+- `CoreSimulator/Devices` appears in `Careful Cleanup`
+
+Each item explains:
+
+- what it is
+- what happens after deletion
+- when it makes sense to clean it
+
+Prompts automatically follow the system's preferred language:
+
+- Simplified Chinese is used when the preferred language starts with `zh`
+- English is used otherwise
+
+Technical names such as `DerivedData` and `CoreSimulator/Devices` stay unchanged so the output still maps clearly to real Xcode paths.
+
 ## Scope
 
 `xclean` only targets Xcode-related paths under the current user's home directory:
@@ -68,6 +98,8 @@ xclean --version
 - optional log directories
 
 It does not touch archives, signing assets, or provisioning profiles.
+
+`CoreSimulator/Devices` is included as a cautious target because deleting it may reset simulator devices and remove simulator-local app data.
 
 ## Release Packaging
 

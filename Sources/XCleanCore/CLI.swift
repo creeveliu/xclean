@@ -13,16 +13,17 @@ public enum XCleanCLI {
         )
         let scanner = Scanner(pathSafetyValidator: validator)
         let cleaner = Cleaner(pathSafetyValidator: validator)
-        let ui = TerminalUI()
-        let report = scanner.scan(rules: rules)
-
+        let ui = TerminalUI(language: .current)
         let arguments = Array(CommandLine.arguments.dropFirst())
         let command = arguments.first ?? "interactive"
 
         switch command {
         case "interactive", "clean":
-            ui.runInteractiveClean(report: report, cleaner: cleaner)
+            ui.runInteractiveClean(reportProvider: {
+                scanner.scan(rules: rules)
+            }, cleaner: cleaner)
         case "scan":
+            let report = scanner.scan(rules: rules)
             ui.printReport(report)
         case "update":
             let result = updater.update(currentExecutablePath: currentExecutablePath())
