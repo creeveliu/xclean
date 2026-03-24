@@ -119,16 +119,25 @@ For GitHub Releases, upload at least:
 - `xclean-macos-x86_64.tar.gz`
 - optionally the versioned archives and `sha256sums.txt`
 
-Upload the same files to R2 with Wrangler:
+Push a version tag to trigger the full release workflow:
+
+```bash
+git push
+git tag v0.1.4
+git push origin v0.1.4
+```
+
+GitHub Actions will then:
+
+- create the GitHub release
+- build and upload release assets
+- merge `sha256sums.txt`
+- sync the installer and release assets to R2
+
+If you need a manual fallback for R2 sync:
 
 ```bash
 bash scripts/upload-r2.sh 0.1.4
-```
-
-If your bucket name is not `xclean`, override it explicitly:
-
-```bash
-XCLEAN_R2_BUCKET=my-bucket bash scripts/upload-r2.sh 0.1.4
 ```
 
 ## Publishing `curl | bash`
@@ -155,7 +164,7 @@ https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/sha256sums.txt
 ```
 
-The helper upload command writes these object keys automatically:
+The manual helper upload command writes these object keys automatically:
 
 ```bash
 bash scripts/upload-r2.sh 0.1.4

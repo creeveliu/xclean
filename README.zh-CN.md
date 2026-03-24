@@ -119,16 +119,25 @@ xclean --version
 - `xclean-macos-x86_64.tar.gz`
 - 可选上传带版本号的压缩包和 `sha256sums.txt`
 
-使用 Wrangler 同步同一批文件到 R2：
+推送版本 tag 后会自动触发完整发布流程：
+
+```bash
+git push
+git tag v0.1.4
+git push origin v0.1.4
+```
+
+GitHub Actions 随后会自动：
+
+- 创建 GitHub release
+- 构建并上传 release 产物
+- 合并 `sha256sums.txt`
+- 同步安装脚本和 release 产物到 R2
+
+如果需要手动执行 R2 同步，可以使用备用命令：
 
 ```bash
 bash scripts/upload-r2.sh 0.1.4
-```
-
-如果 bucket 名字不是 `xclean`，可以显式覆盖：
-
-```bash
-XCLEAN_R2_BUCKET=my-bucket bash scripts/upload-r2.sh 0.1.4
 ```
 
 ## 发布 `curl | bash`
@@ -155,7 +164,7 @@ https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/sha256sums.txt
 ```
 
-上面的对象 key 可以直接用下面这条命令自动上传：
+上面的对象 key 也可以用下面这条备用命令手动上传：
 
 ```bash
 bash scripts/upload-r2.sh 0.1.4
