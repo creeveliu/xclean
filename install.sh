@@ -129,7 +129,7 @@ main() {
   fi
 
   log ""
-  log "Installed xclean $(\"$INSTALL_DIR/xclean\" --version)"
+  log "Installed xclean $("$INSTALL_DIR/xclean" --version)"
   log "Run:"
   log "  xclean"
   ensure_path_hint
