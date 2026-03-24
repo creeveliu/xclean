@@ -20,7 +20,7 @@
 ## Current Version
 
 - Source version is defined in `Sources/XCleanCore/CLI.swift`
-- Latest released version at time of writing: `0.1.2`
+- Latest released version at time of writing: `0.1.3`
 
 ## Architecture
 
@@ -85,7 +85,7 @@ Release packaging script:
 Build command:
 
 ```bash
-bash scripts/build-release.sh 0.1.2
+bash scripts/build-release.sh 0.1.3
 ```
 
 ## Testing and Verification
@@ -114,6 +114,7 @@ Manual release flow currently works and has been used for:
 - `v0.1.0`
 - `v0.1.1`
 - `v0.1.2`
+- `v0.1.3`
 
 Current manual sequence:
 
@@ -155,4 +156,3 @@ gh auth refresh -h github.com -s workflow
   - `Sources/XCleanCore/CLI.swift`
   - `README.md`
   - tests under `Tests/XCleanCoreTests`
-

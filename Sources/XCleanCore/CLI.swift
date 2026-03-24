@@ -1,7 +1,7 @@
 import Foundation
 
 public enum XCleanCLI {
-    public static let version = "0.1.2"
+    public static let version = "0.1.3"
 
     public static func main() {
         let updater = Updater()
