@@ -17,7 +17,7 @@ public struct Updater {
     private let fileManager: FileManager
 
     public init(
-        installerURL: URL = URL(string: "https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh")!,
+        installerURL: URL = URL(string: "https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh")!,
         processRunner: ProcessRunning = ProcessRunner(),
         fileManager: FileManager = .default
     ) {

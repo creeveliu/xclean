@@ -2,6 +2,29 @@ import XCTest
 @testable import XCleanCore
 
 final class UpdaterTests: XCTestCase {
+    func testUpdateDefaultsToCloudflareInstallerURL() {
+        var capturedArguments: [String] = []
+        let runner = MockProcessRunner(
+            nextResult: ProcessResult(exitCode: 0, standardOutput: "", standardError: ""),
+            onRun: { _, arguments, _ in
+                capturedArguments = arguments
+            }
+        )
+
+        let updater = Updater(processRunner: runner)
+        _ = updater.update(currentExecutablePath: "/Users/test/.local/bin/xclean")
+
+        XCTAssertEqual(
+            capturedArguments,
+            [
+                "-o",
+                "pipefail",
+                "-lc",
+                "curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash"
+            ]
+        )
+    }
+
     func testUpdateUsesCurrentExecutableDirectoryAsInstallDir() throws {
         let updater = Updater(installerURL: URL(string: "https://example.com/install.sh")!)
         let executable = "/Users/test/.local/bin/xclean"
