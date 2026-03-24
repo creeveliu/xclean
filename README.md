@@ -9,13 +9,13 @@
 Remote install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 Pin to a specific release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | \
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | \
   XCLEAN_INSTALL_VERSION=v0.1.4 bash
 ```
 
@@ -34,12 +34,12 @@ The installer:
 You can override defaults:
 
 ```bash
-XCLEAN_RELEASE_BASE_URL=https://github.com/creeveliu/xclean/releases \
+XCLEAN_RELEASE_BASE_URL=https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases \
 XCLEAN_INSTALL_VERSION=latest \
 XCLEAN_REPO_URL=https://github.com/creeveliu/xclean.git \
 XCLEAN_INSTALL_REF=main \
 XCLEAN_INSTALL_DIR="$HOME/.local/bin" \
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 ## Usage
@@ -119,12 +119,24 @@ For GitHub Releases, upload at least:
 - `xclean-macos-x86_64.tar.gz`
 - optionally the versioned archives and `sha256sums.txt`
 
+Upload the same files to R2 with Wrangler:
+
+```bash
+bash scripts/upload-r2.sh 0.1.4
+```
+
+If your bucket name is not `xclean`, override it explicitly:
+
+```bash
+XCLEAN_R2_BUCKET=my-bucket bash scripts/upload-r2.sh 0.1.4
+```
+
 ## Publishing `curl | bash`
 
 Current public installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 Current release page:
@@ -133,7 +145,23 @@ Current release page:
 https://github.com/creeveliu/xclean/releases
 ```
 
-If you later move the installer to your own domain, do this:
+Mirror release assets to the R2 bucket using the same path layout expected by the installer:
+
+```text
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/sha256sums.txt
+```
+
+The helper upload command writes these object keys automatically:
+
+```bash
+bash scripts/upload-r2.sh 0.1.4
+```
+
+If you later move the installer again, do this:
 
 1. Host `install.sh` at a stable URL.
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.

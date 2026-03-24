@@ -9,13 +9,13 @@
 远程安装：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 固定到指定版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | \
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | \
   XCLEAN_INSTALL_VERSION=v0.1.4 bash
 ```
 
@@ -34,12 +34,12 @@ bash install.sh
 你也可以覆盖默认值：
 
 ```bash
-XCLEAN_RELEASE_BASE_URL=https://github.com/creeveliu/xclean/releases \
+XCLEAN_RELEASE_BASE_URL=https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases \
 XCLEAN_INSTALL_VERSION=latest \
 XCLEAN_REPO_URL=https://github.com/creeveliu/xclean.git \
 XCLEAN_INSTALL_REF=main \
 XCLEAN_INSTALL_DIR="$HOME/.local/bin" \
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 ## 用法
@@ -119,12 +119,24 @@ xclean --version
 - `xclean-macos-x86_64.tar.gz`
 - 可选上传带版本号的压缩包和 `sha256sums.txt`
 
+使用 Wrangler 同步同一批文件到 R2：
+
+```bash
+bash scripts/upload-r2.sh 0.1.4
+```
+
+如果 bucket 名字不是 `xclean`，可以显式覆盖：
+
+```bash
+XCLEAN_R2_BUCKET=my-bucket bash scripts/upload-r2.sh 0.1.4
+```
+
 ## 发布 `curl | bash`
 
 当前公开安装命令：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | bash
+curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | bash
 ```
 
 当前 release 页面：
@@ -133,7 +145,23 @@ curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | 
 https://github.com/creeveliu/xclean/releases
 ```
 
-如果之后要把安装脚本迁移到你自己的域名，可以这样做：
+把 release 产物同步到 R2 时，建议保持安装脚本当前使用的目录结构：
+
+```text
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/sha256sums.txt
+```
+
+上面的对象 key 可以直接用下面这条命令自动上传：
+
+```bash
+bash scripts/upload-r2.sh 0.1.4
+```
+
+如果之后还要把安装入口迁移到你自己的域名，可以这样做：
 
 1. 在稳定 URL 上托管 `install.sh`。
 2. 在该脚本中把 `XCLEAN_RELEASE_BASE_URL` 设置为真实的 release 基础地址。
