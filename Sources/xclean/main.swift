@@ -1,0 +1,3 @@
+import XCleanCore
+
+XCleanCLI.main()
