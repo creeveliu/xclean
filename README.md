@@ -14,7 +14,7 @@ Pin to a specific release:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | \
-  XCLEAN_INSTALL_VERSION=v0.1.1 bash
+  XCLEAN_INSTALL_VERSION=v0.1.2 bash
 ```
 
 Local development install:
@@ -47,10 +47,12 @@ xclean
 xclean clean
 xclean scan
 xclean update
+xclean uninstall
 xclean --version
 ```
 
 `xclean update` reruns the installer and replaces the current binary in the same install directory.
+`xclean uninstall` removes the current binary and deletes the install directory if it becomes empty.
 
 ## Scope
 
@@ -103,4 +105,4 @@ If you later move the installer to your own domain, do this:
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.
 3. Upload prebuilt archives named `xclean-macos-arm64.tar.gz` and `xclean-macos-x86_64.tar.gz`.
 4. Optionally keep `XCLEAN_REPO_URL` and `XCLEAN_INSTALL_REF` for source-build fallback.
-5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.1`.
+5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.2`.

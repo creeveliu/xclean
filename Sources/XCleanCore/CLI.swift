@@ -1,7 +1,7 @@
 import Foundation
 
 public enum XCleanCLI {
-    public static let version = "0.1.1"
+    public static let version = "0.1.2"
 
     public static func main() {
         let updater = Updater()
@@ -33,6 +33,23 @@ public enum XCleanCLI {
                 fputs(result.standardError, stderr)
             }
             Foundation.exit(result.exitCode == 0 ? 0 : 1)
+        case "uninstall":
+            let result = updater.uninstall(currentExecutablePath: currentExecutablePath())
+            switch result.status {
+            case .deleted:
+                print("xclean uninstalled.")
+                Foundation.exit(0)
+            case .skipped:
+                if let message = result.message {
+                    print(message)
+                }
+                Foundation.exit(0)
+            case .failed:
+                if let message = result.message {
+                    fputs("\(message)\n", stderr)
+                }
+                Foundation.exit(1)
+            }
         case "version", "--version", "-v":
             print(version)
         case "-h", "--help", "help":
@@ -52,6 +69,7 @@ public enum XCleanCLI {
               xclean clean     Start interactive cleanup
               xclean scan      Scan only
               xclean update    Reinstall the latest version
+              xclean uninstall Remove the current binary
               xclean version   Print version
             """
         )

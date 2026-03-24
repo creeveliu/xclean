@@ -36,4 +36,35 @@ final class UpdaterTests: XCTestCase {
         XCTAssertEqual(capturedArguments, ["-o", "pipefail", "-lc", "curl -fsSL https://example.com/install.sh | bash"])
         XCTAssertEqual(capturedEnvironment["XCLEAN_INSTALL_DIR"], "/Users/test/.local/bin")
     }
+
+    func testUninstallRemovesCurrentExecutable() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let installDir = root.appendingPathComponent(".local/bin", isDirectory: true)
+        let executable = installDir.appendingPathComponent("xclean")
+
+        try FileManager.default.createDirectory(at: installDir, withIntermediateDirectories: true)
+        try "stub".data(using: .utf8)?.write(to: executable)
+
+        let updater = Updater(installerURL: URL(string: "https://example.com/install.sh")!)
+        let result = updater.uninstall(currentExecutablePath: executable.path)
+
+        XCTAssertEqual(result.status, .deleted)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: executable.path))
+    }
+
+    func testUninstallRemovesInstallDirectoryWhenItBecomesEmpty() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let installDir = root.appendingPathComponent(".local/bin", isDirectory: true)
+        let executable = installDir.appendingPathComponent("xclean")
+
+        try FileManager.default.createDirectory(at: installDir, withIntermediateDirectories: true)
+        try "stub".data(using: .utf8)?.write(to: executable)
+
+        let updater = Updater(installerURL: URL(string: "https://example.com/install.sh")!)
+        _ = updater.uninstall(currentExecutablePath: executable.path)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: installDir.path))
+    }
 }
