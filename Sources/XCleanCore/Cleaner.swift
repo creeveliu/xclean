@@ -16,16 +16,21 @@ public struct Cleaner {
     }
 
     public func delete(items: [ScannedItem]) -> [DeleteResult] {
-        items.map(delete(item:))
+        items.flatMap(deleteResults(for:))
     }
 
     public func delete(item: ScannedItem) -> DeleteResult {
-        switch item.rule.kind {
-        case .directory:
-            return deleteDirectory(item: item)
-        case .command:
-            return deleteUnavailableSimulators(item: item)
+        if item.rule.identifier == "simulator-devices",
+           let candidates = item.candidates,
+           candidates.count > 1 {
+            return DeleteResult(
+                item: item,
+                status: .failed,
+                message: "Use delete(items:) for simulator device selections."
+            )
         }
+
+        return deleteResults(for: item).first ?? DeleteResult(item: item, status: .failed, message: "Nothing to delete.")
     }
 
     private func deleteDirectory(item: ScannedItem) -> DeleteResult {
@@ -44,6 +49,61 @@ public struct Cleaner {
             return DeleteResult(item: item, status: .deleted, message: nil)
         } catch {
             return DeleteResult(item: item, status: .failed, message: error.localizedDescription)
+        }
+    }
+
+    private func deleteResults(for item: ScannedItem) -> [DeleteResult] {
+        switch item.rule.kind {
+        case .directory:
+            if item.rule.identifier == "simulator-devices" {
+                return deleteSimulatorDeviceCandidates(item: item)
+            }
+            return [deleteDirectory(item: item)]
+        case .command:
+            return [deleteUnavailableSimulators(item: item)]
+        }
+    }
+
+    private func deleteSimulatorDeviceCandidates(item: ScannedItem) -> [DeleteResult] {
+        guard let candidates = item.candidates, !candidates.isEmpty else {
+            return [
+                DeleteResult(
+                    item: item,
+                    status: .failed,
+                    message: "No simulator device candidates selected."
+                )
+            ]
+        }
+
+        return candidates.map { candidate in
+            let candidateItem = item.itemForCandidate(candidate)
+
+            guard pathSafetyValidator.isSafe(path: candidate.path, allowingDescendantsOfAllowedPaths: true) else {
+                return DeleteResult(
+                    item: candidateItem,
+                    status: .failed,
+                    message: "Blocked by safety rules."
+                )
+            }
+
+            guard fileManager.fileExists(atPath: candidate.path) else {
+                return DeleteResult(
+                    item: candidateItem,
+                    status: .skipped,
+                    message: "Path not found."
+                )
+            }
+
+            do {
+                try fileManager.removeItem(atPath: candidate.path)
+                return DeleteResult(item: candidateItem, status: .deleted, message: nil)
+            } catch {
+                return DeleteResult(
+                    item: candidateItem,
+                    status: .failed,
+                    message: error.localizedDescription
+                )
+            }
         }
     }
 

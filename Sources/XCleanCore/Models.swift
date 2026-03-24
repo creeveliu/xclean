@@ -178,6 +178,31 @@ public struct CleanupRule: Equatable, Sendable {
     }
 }
 
+public struct CleanupCandidate: Equatable, Sendable {
+    public let identifier: String
+    public let title: String
+    public let path: String
+    public let sizeBytes: Int64?
+    public let detail: String?
+    public let isRecommendedToKeep: Bool
+
+    public init(
+        identifier: String,
+        title: String,
+        path: String,
+        sizeBytes: Int64?,
+        detail: String?,
+        isRecommendedToKeep: Bool
+    ) {
+        self.identifier = identifier
+        self.title = title
+        self.path = path
+        self.sizeBytes = sizeBytes
+        self.detail = detail
+        self.isRecommendedToKeep = isRecommendedToKeep
+    }
+}
+
 public struct RuleDecisionCopy: Equatable, Sendable {
     public let whatItIs: String
     public let afterDeletion: String
@@ -338,16 +363,42 @@ public struct ScannedItem: Sendable {
     public let status: ScanStatus
     public let sizeBytes: Int64?
     public let detail: String?
+    public let candidates: [CleanupCandidate]?
 
-    public init(rule: CleanupRule, status: ScanStatus, sizeBytes: Int64?, detail: String?) {
+    public init(
+        rule: CleanupRule,
+        status: ScanStatus,
+        sizeBytes: Int64?,
+        detail: String?,
+        candidates: [CleanupCandidate]? = nil
+    ) {
         self.rule = rule
         self.status = status
         self.sizeBytes = sizeBytes
         self.detail = detail
+        self.candidates = candidates
     }
 
     public var isActionable: Bool {
         status == .available
+    }
+
+    public func itemForCandidate(_ candidate: CleanupCandidate) -> ScannedItem {
+        ScannedItem(
+            rule: CleanupRule(
+                identifier: "\(rule.identifier):\(candidate.identifier)",
+                title: candidate.title,
+                category: rule.category,
+                kind: .directory,
+                path: candidate.path,
+                description: candidate.detail ?? rule.description,
+                recommendation: rule.recommendation,
+                tier: rule.tier
+            ),
+            status: status,
+            sizeBytes: candidate.sizeBytes,
+            detail: candidate.detail
+        )
     }
 }
 

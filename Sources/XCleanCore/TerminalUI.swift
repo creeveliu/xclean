@@ -141,6 +141,23 @@ public struct TerminalUI {
         var lines = [confirmationTitle()]
 
         for item in items {
+            if let candidates = item.candidates, !candidates.isEmpty {
+                let copy = item.rule.localizedDecisionCopy(language: language)
+                for candidate in candidates {
+                    lines.append("- \(candidate.title)  \(ByteFormatter.string(for: candidate.sizeBytes))")
+                    lines.append("  \(labeledValue(afterDeletionLabel(), copy.afterDeletion))")
+                    if let detail = candidate.detail {
+                        lines.append("  \(labeledValue(systemVersionLabel(), detail))")
+                    }
+                    lines.append("  \(labeledValue(pathLabel(), candidate.path))")
+                    if candidate.isRecommendedToKeep {
+                        lines.append("  \(labeledValue(recommendationLabel(), recommendedToKeepText()))")
+                    }
+                }
+                lines.append("  \(simulatorKeepWarning())")
+                continue
+            }
+
             let copy = item.rule.localizedDecisionCopy(language: language)
             lines.append("- \(item.rule.title)  \(ByteFormatter.string(for: item.sizeBytes))")
             lines.append("  \(labeledValue(afterDeletionLabel(), copy.afterDeletion))")
@@ -163,6 +180,12 @@ public struct TerminalUI {
         var lines = [resultsTitle()]
 
         for result in results {
+            if let candidates = result.item.candidates, !candidates.isEmpty {
+                for candidate in candidates {
+                    lines.append("- \(candidate.title): \(localizedDeleteStatus(result.status)) (\(selectedDeviceText()))")
+                }
+                continue
+            }
             let suffix = result.message.map { " (\($0))" } ?? ""
             lines.append("- \(result.item.rule.title): \(localizedDeleteStatus(result.status))\(suffix)")
         }
@@ -213,14 +236,30 @@ public struct TerminalUI {
                 continue
             }
 
-            if confirmDeletion(for: actionableItems) {
-                let results = cleaner.delete(items: actionableItems)
+            switch expandSimulatorSelections(in: actionableItems) {
+            case .quit:
+                exitHandler(0)
+                return
+            case .cancelled:
+                print(cancelledText())
+                print("")
+                continue
+            case .selected(let finalItems):
+            guard !finalItems.isEmpty else {
+                print(noActionableItemsText())
+                print("")
+                continue
+            }
+
+            if confirmDeletion(for: finalItems) {
+                let results = cleaner.delete(items: finalItems)
                 print("")
                 print(renderResults(results))
                 print("")
             } else {
                 print(cancelledText())
                 print("")
+            }
             }
         }
     }
@@ -230,6 +269,107 @@ public struct TerminalUI {
         print(renderDeletionConfirmation(for: items))
         print("")
         return prompt(confirmPrompt()) == "yes"
+    }
+
+    private func expandSimulatorSelections(in items: [ScannedItem]) -> SimulatorSelectionExpansion {
+        var expandedItems: [ScannedItem] = []
+
+        for item in items {
+            guard item.rule.identifier == "simulator-devices",
+                  let candidates = item.candidates,
+                  !candidates.isEmpty else {
+                expandedItems.append(item)
+                continue
+            }
+
+            switch promptForSimulatorCandidates(item: item, candidates: candidates) {
+            case .quit:
+                return .quit
+            case .back:
+                return .cancelled
+            case .selected(let selectedCandidates):
+                guard !selectedCandidates.isEmpty else {
+                    continue
+                }
+
+                expandedItems.append(
+                    ScannedItem(
+                        rule: item.rule,
+                        status: item.status,
+                        sizeBytes: selectedCandidates.reduce(0) { $0 + ($1.sizeBytes ?? 0) },
+                        detail: item.detail,
+                        candidates: selectedCandidates
+                    )
+                )
+            }
+        }
+
+        return .selected(expandedItems)
+    }
+
+    private func promptForSimulatorCandidates(item: ScannedItem, candidates: [CleanupCandidate]) -> SimulatorCandidateSelection {
+        while true {
+            print("")
+            print(renderSimulatorCandidateSelection(item: item, candidates: candidates))
+            print("")
+            print(commandsText())
+
+            guard let input = prompt(promptSelectSimulatorDevices()) else {
+                return .back
+            }
+
+            if input == "b" {
+                return .back
+            }
+            if input == "q" {
+                return .quit
+            }
+
+            if input == "a" {
+                return .selected(candidates)
+            }
+
+            let indexes = input.split(separator: ",").compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+            let selected: [CleanupCandidate] = indexes.compactMap { index in
+                guard candidates.indices.contains(index - 1) else {
+                    return nil
+                }
+                return candidates[index - 1]
+            }
+
+            if !selected.isEmpty, selected.count == indexes.count {
+                return .selected(selected)
+            }
+
+            print(invalidSelectionText())
+        }
+    }
+
+    private func renderSimulatorCandidateSelection(item: ScannedItem, candidates: [CleanupCandidate]) -> String {
+        var lines = [
+            simulatorDeviceSelectionTitle(),
+            item.rule.title,
+            simulatorKeepWarning(),
+            ""
+        ]
+
+        if let detail = item.detail {
+            lines.append(labeledValue(detailLabel(), detail))
+            lines.append("")
+        }
+
+        for (index, candidate) in candidates.enumerated() {
+            lines.append("\(index + 1). \(candidate.title)  \(ByteFormatter.string(for: candidate.sizeBytes))")
+            if let detail = candidate.detail {
+                lines.append("   \(labeledValue(systemVersionLabel(), detail))")
+            }
+            lines.append("   \(labeledValue(pathLabel(), candidate.path))")
+            if candidate.isRecommendedToKeep {
+                lines.append("   \(labeledValue(recommendationLabel(), recommendedToKeepText()))")
+            }
+        }
+
+        return lines.joined(separator: "\n")
     }
 
     private func prompt(_ message: String) -> String? {
@@ -459,6 +599,78 @@ public struct TerminalUI {
         }
     }
 
+    private func systemVersionLabel() -> String {
+        switch language {
+        case .english:
+            return "system version"
+        case .simplifiedChinese:
+            return "系统版本"
+        }
+    }
+
+    private func recommendationLabel() -> String {
+        switch language {
+        case .english:
+            return "recommendation"
+        case .simplifiedChinese:
+            return "建议"
+        }
+    }
+
+    private func simulatorDeviceListTitle() -> String {
+        switch language {
+        case .english:
+            return "simulator devices:"
+        case .simplifiedChinese:
+            return "模拟器设备："
+        }
+    }
+
+    private func recommendedToKeepText() -> String {
+        switch language {
+        case .english:
+            return "recommended to keep"
+        case .simplifiedChinese:
+            return "建议保留"
+        }
+    }
+
+    private func simulatorKeepWarning() -> String {
+        switch language {
+        case .english:
+            return "Warning: keep one common simulator if possible."
+        case .simplifiedChinese:
+            return "提示：建议尽量保留一个最常用的模拟器。"
+        }
+    }
+
+    private func selectedDeviceText() -> String {
+        switch language {
+        case .english:
+            return "selected device"
+        case .simplifiedChinese:
+            return "已选设备"
+        }
+    }
+
+    private func simulatorDeviceSelectionTitle() -> String {
+        switch language {
+        case .english:
+            return "Select simulator devices to delete"
+        case .simplifiedChinese:
+            return "选择要删除的模拟器设备"
+        }
+    }
+
+    private func promptSelectSimulatorDevices() -> String {
+        switch language {
+        case .english:
+            return "Select simulator device(s)"
+        case .simplifiedChinese:
+            return "选择模拟器设备"
+        }
+    }
+
     private func commandDescription(for rule: CleanupRule) -> String {
         switch rule.identifier {
         case "simctl-unavailable":
@@ -493,4 +705,16 @@ public struct TerminalUI {
     private func print(_ text: String) {
         outputWriter(text)
     }
+}
+
+private enum SimulatorSelectionExpansion {
+    case selected([ScannedItem])
+    case cancelled
+    case quit
+}
+
+private enum SimulatorCandidateSelection {
+    case selected([CleanupCandidate])
+    case back
+    case quit
 }

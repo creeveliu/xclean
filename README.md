@@ -16,7 +16,7 @@ Pin to a specific release:
 
 ```bash
 curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | \
-  XCLEAN_INSTALL_VERSION=v0.1.4 bash
+  XCLEAN_INSTALL_VERSION=v0.1.5 bash
 ```
 
 Local development install:
@@ -77,7 +77,7 @@ Examples:
 
 - `DerivedData`, `UserData/Previews`, and unavailable simulators appear in `Safe Cleanup`
 - documentation cache, device support files, and logs appear in `Clean If Needed`
-- `CoreSimulator/Devices` appears in `Careful Cleanup`
+- `CoreSimulator/Devices` appears in `Careful Cleanup`, then expands into individual simulator device folders
 
 Each item explains:
 
@@ -107,7 +107,11 @@ Technical names such as `DerivedData` and `CoreSimulator/Devices` stay unchanged
 
 It does not touch archives, signing assets, or provisioning profiles.
 
-`CoreSimulator/Devices` is included as a cautious target because deleting it may reset simulator devices and remove simulator-local app data.
+`CoreSimulator/Devices` is included as a cautious target because deleting simulator device folders may reset those devices and remove simulator-local app data.
+
+When you select `CoreSimulator/Devices`, `xclean` does not delete the whole folder at once.
+It loads recognizable simulator device subfolders, shows device name, runtime, size, and path, and lets you choose which ones to remove.
+The prompt also recommends keeping one commonly used simulator when possible so you do not wipe every local simulator environment in one pass.
 
 ## Release Packaging
 
@@ -129,8 +133,8 @@ Push a version tag to trigger the full release workflow:
 
 ```bash
 git push
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 GitHub Actions will then:
@@ -143,7 +147,7 @@ GitHub Actions will then:
 If you need a manual fallback for R2 sync:
 
 ```bash
-bash scripts/upload-r2.sh 0.1.4
+bash scripts/upload-r2.sh 0.1.5
 ```
 
 ## Publishing `curl | bash`
@@ -165,15 +169,15 @@ Mirror release assets to the R2 bucket using the same path layout expected by th
 ```text
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-arm64.tar.gz
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-arm64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.4/sha256sums.txt
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.5/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.5/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.5/sha256sums.txt
 ```
 
 The manual helper upload command writes these object keys automatically:
 
 ```bash
-bash scripts/upload-r2.sh 0.1.4
+bash scripts/upload-r2.sh 0.1.5
 ```
 
 If you later move the installer again, do this:
@@ -182,4 +186,4 @@ If you later move the installer again, do this:
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.
 3. Upload prebuilt archives named `xclean-macos-arm64.tar.gz` and `xclean-macos-x86_64.tar.gz`.
 4. Optionally keep `XCLEAN_REPO_URL` and `XCLEAN_INSTALL_REF` for source-build fallback.
-5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.4`.
+5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.5`.

@@ -55,6 +55,33 @@ final class TerminalUITests: XCTestCase {
         XCTAssertFalse(output.contains("输入 yes 确认"))
     }
 
+    func testRenderTierDetailsKeepsSimulatorDevicesCollapsedUntilSelectionStep() {
+        let ui = TerminalUI(language: .english)
+        let summary = simulatorDeviceSummary()
+
+        let output = ui.renderTierDetail(summary)
+
+        XCTAssertFalse(output.contains("iPhone 15"))
+        XCTAssertFalse(output.contains("iPhone 16"))
+        XCTAssertFalse(output.contains("system version: iOS 17.4"))
+        XCTAssertFalse(output.contains("recommended to keep"))
+        XCTAssertFalse(output.contains("模拟器设备"))
+        XCTAssertFalse(output.contains("keep one common simulator"))
+    }
+
+    func testRenderDeletionConfirmationWarnsToKeepOneCommonSimulator() {
+        let ui = TerminalUI(language: .english)
+        let item = simulatorDeviceItem()
+
+        let output = ui.renderDeletionConfirmation(for: [item])
+
+        XCTAssertTrue(output.contains("iPhone 15"))
+        XCTAssertTrue(output.contains("iPhone 16"))
+        XCTAssertTrue(output.contains("keep one common simulator"))
+        XCTAssertTrue(output.contains("Simulator devices may be reset and local test data can be lost."))
+        XCTAssertFalse(output.contains("- CoreSimulator/Devices"))
+    }
+
     func testRenderTierDetailsLocalizesStatusLabels() {
         let ui = TerminalUI(language: .simplifiedChinese)
         let report = makeReport()
@@ -79,6 +106,21 @@ final class TerminalUITests: XCTestCase {
         XCTAssertTrue(output.contains("结果"))
         XCTAssertTrue(output.contains("DerivedData: 已删除"))
         XCTAssertTrue(output.contains("DerivedData: 失败 (permission denied)"))
+    }
+
+    func testRenderResultsExpandsSimulatorDeviceSelections() {
+        let ui = TerminalUI(language: .english)
+        let item = simulatorDeviceItem()
+        let results = [
+            DeleteResult(item: item, status: .deleted, message: nil)
+        ]
+
+        let output = ui.renderResults(results)
+
+        XCTAssertTrue(output.contains("iPhone 15"))
+        XCTAssertTrue(output.contains("iPhone 16"))
+        XCTAssertTrue(output.contains("selected device"))
+        XCTAssertFalse(output.contains("- CoreSimulator/Devices"))
     }
 
     func testInteractiveCleanRefreshesTierDetailsAfterDeletion() throws {
@@ -140,6 +182,69 @@ final class TerminalUITests: XCTestCase {
         XCTAssertTrue(output.contains("0 items"))
     }
 
+    func testInteractiveCleanSupportsSimulatorCandidateSelectionAndQuit() {
+        let item = simulatorDeviceItem()
+        let report = ScanReport(categories: [
+            CategorySummary(category: .simulators, items: [item])
+        ])
+
+        let cleaner = Cleaner(
+            fileManager: .default,
+            pathSafetyValidator: PathSafetyValidator(
+                homeDirectory: URL(fileURLWithPath: "/tmp/example-home", isDirectory: true),
+                allowedPaths: [item.rule.path!]
+            ),
+            processRunner: MockProcessRunner()
+        )
+
+        var inputs = ["1", "1", "q"]
+        var outputs = [String]()
+        var exitCode: Int32?
+        let ui = TerminalUI(
+            language: .english,
+            inputReader: { inputs.isEmpty ? nil : inputs.removeFirst() },
+            outputWriter: { outputs.append($0) },
+            exitHandler: { code in exitCode = code }
+        )
+
+        ui.runInteractiveClean(reportProvider: { report }, cleaner: cleaner)
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertTrue(outputs.joined(separator: "\n").contains("Select simulator devices to delete"))
+    }
+
+    func testInteractiveCleanRetriesAfterInvalidSimulatorCandidateSelection() {
+        let item = simulatorDeviceItem()
+        let report = ScanReport(categories: [
+            CategorySummary(category: .simulators, items: [item])
+        ])
+
+        let cleaner = Cleaner(
+            fileManager: .default,
+            pathSafetyValidator: PathSafetyValidator(
+                homeDirectory: URL(fileURLWithPath: "/tmp/example-home", isDirectory: true),
+                allowedPaths: [item.rule.path!]
+            ),
+            processRunner: MockProcessRunner()
+        )
+
+        var inputs = ["1", "1", "9", "1", "yes", "b"]
+        var outputs = [String]()
+        let ui = TerminalUI(
+            language: .english,
+            inputReader: { inputs.isEmpty ? nil : inputs.removeFirst() },
+            outputWriter: { outputs.append($0) },
+            exitHandler: { _ in XCTFail("Unexpected exit") }
+        )
+
+        ui.runInteractiveClean(reportProvider: { report }, cleaner: cleaner)
+
+        let output = outputs.joined(separator: "\n")
+        XCTAssertTrue(output.contains("Invalid selection."))
+        XCTAssertTrue(output.contains("iPhone 15"))
+        XCTAssertTrue(output.contains("Results"))
+    }
+
     private func makeReport() -> ScanReport {
         let home = URL(fileURLWithPath: "/tmp/example-home", isDirectory: true)
         let rules = CleanupRule.defaultRules(homeDirectory: home)
@@ -177,5 +282,48 @@ final class TerminalUITests: XCTestCase {
     private func makeItem(ruleID: String, rules: [CleanupRule], sizeBytes: Int64) -> ScannedItem {
         let rule = try! XCTUnwrap(rules.first(where: { $0.identifier == ruleID }))
         return ScannedItem(rule: rule, status: .available, sizeBytes: sizeBytes, detail: nil)
+    }
+
+    private func simulatorDeviceSummary() -> TerminalUI.TierSummary {
+        let item = simulatorDeviceItem()
+        return TerminalUI.TierSummary(tier: .careful, items: [item])
+    }
+
+    private func simulatorDeviceItem() -> ScannedItem {
+        let home = URL(fileURLWithPath: "/tmp/example-home", isDirectory: true)
+        let rule = CleanupRule(
+            identifier: "simulator-devices",
+            title: "CoreSimulator/Devices",
+            category: .simulators,
+            kind: .directory,
+            path: home.appendingPathComponent("Library/Developer/CoreSimulator/Devices").path,
+            description: "Simulator device data",
+            recommendation: .caution,
+            tier: .careful
+        )
+        return ScannedItem(
+            rule: rule,
+            status: .available,
+            sizeBytes: 256,
+            detail: "2 simulator device(s). Skipped 1 unmapped directory.",
+            candidates: [
+                CleanupCandidate(
+                    identifier: "11111111-2222-3333-4444-555555555555",
+                    title: "iPhone 15",
+                    path: home.appendingPathComponent("Library/Developer/CoreSimulator/Devices/11111111-2222-3333-4444-555555555555").path,
+                    sizeBytes: 128,
+                    detail: "iOS 17.4",
+                    isRecommendedToKeep: true
+                ),
+                CleanupCandidate(
+                    identifier: "22222222-3333-4444-5555-666666666666",
+                    title: "iPhone 16",
+                    path: home.appendingPathComponent("Library/Developer/CoreSimulator/Devices/22222222-3333-4444-5555-666666666666").path,
+                    sizeBytes: 128,
+                    detail: "iOS 18.0",
+                    isRecommendedToKeep: false
+                )
+            ]
+        )
     }
 }
