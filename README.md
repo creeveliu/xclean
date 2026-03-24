@@ -16,7 +16,7 @@ Pin to a specific release:
 
 ```bash
 curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | \
-  XCLEAN_INSTALL_VERSION=v0.1.6 bash
+  XCLEAN_INSTALL_VERSION=v0.1.7 bash
 ```
 
 Local development install:
@@ -133,8 +133,8 @@ Push a version tag to trigger the full release workflow:
 
 ```bash
 git push
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 ```
 
 GitHub Actions will then:
@@ -147,7 +147,7 @@ GitHub Actions will then:
 If you need a manual fallback for R2 sync:
 
 ```bash
-bash scripts/upload-r2.sh 0.1.6
+bash scripts/upload-r2.sh 0.1.7
 ```
 
 ## Publishing `curl | bash`
@@ -169,15 +169,15 @@ Mirror release assets to the R2 bucket using the same path layout expected by th
 ```text
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-arm64.tar.gz
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.6/xclean-macos-arm64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.6/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.6/sha256sums.txt
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/sha256sums.txt
 ```
 
 The manual helper upload command writes these object keys automatically:
 
 ```bash
-bash scripts/upload-r2.sh 0.1.6
+bash scripts/upload-r2.sh 0.1.7
 ```
 
 If you later move the installer again, do this:
@@ -186,4 +186,4 @@ If you later move the installer again, do this:
 2. Set `XCLEAN_RELEASE_BASE_URL` in that hosted script to your real release base URL.
 3. Upload prebuilt archives named `xclean-macos-arm64.tar.gz` and `xclean-macos-x86_64.tar.gz`.
 4. Optionally keep `XCLEAN_REPO_URL` and `XCLEAN_INSTALL_REF` for source-build fallback.
-5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.6`.
+5. If you want to pin installs to a tag, set `XCLEAN_INSTALL_VERSION=v0.1.7`.

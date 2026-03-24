@@ -30,6 +30,15 @@ need_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "missing required command: $1"
 }
 
+sign_installed_binary() {
+  local binary_path="$1"
+
+  if command -v codesign >/dev/null 2>&1; then
+    codesign --force --sign - "$binary_path" >/dev/null 2>&1 || \
+      fail "failed to sign installed binary at $binary_path"
+  fi
+}
+
 detect_arch() {
   case "$(uname -m)" in
     arm64) printf 'arm64\n' ;;
@@ -100,6 +109,7 @@ download_prebuilt() {
   mkdir -p "$INSTALL_DIR"
   cp "$binary" "$INSTALL_DIR/xclean"
   chmod 755 "$INSTALL_DIR/xclean"
+  sign_installed_binary "$INSTALL_DIR/xclean"
   return 0
 }
 
@@ -121,6 +131,7 @@ install_binary() {
   mkdir -p "$INSTALL_DIR"
   cp "$BUILD_ROOT/src/.build/release/xclean" "$INSTALL_DIR/xclean"
   chmod 755 "$INSTALL_DIR/xclean"
+  sign_installed_binary "$INSTALL_DIR/xclean"
 }
 
 main() {
