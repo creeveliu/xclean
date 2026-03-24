@@ -13,16 +13,19 @@ public struct ProcessResult: Sendable {
 }
 
 public protocol ProcessRunning {
-    func run(executable: String, arguments: [String]) -> ProcessResult
+    func run(executable: String, arguments: [String], environment: [String: String]?) -> ProcessResult
 }
 
 public struct ProcessRunner: ProcessRunning {
     public init() {}
 
-    public func run(executable: String, arguments: [String]) -> ProcessResult {
+    public func run(executable: String, arguments: [String], environment: [String: String]? = nil) -> ProcessResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
+        if let environment {
+            process.environment = environment
+        }
 
         let stdout = Pipe()
         let stderr = Pipe()

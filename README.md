@@ -46,8 +46,11 @@ curl -fsSL https://raw.githubusercontent.com/creeveliu/xclean/main/install.sh | 
 xclean
 xclean clean
 xclean scan
+xclean update
 xclean --version
 ```
+
+`xclean update` reruns the installer and replaces the current binary in the same install directory.
 
 ## Scope
 

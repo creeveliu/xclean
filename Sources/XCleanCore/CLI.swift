@@ -4,6 +4,7 @@ public enum XCleanCLI {
     public static let version = "0.1.1"
 
     public static func main() {
+        let updater = Updater()
         let homeDirectory = FileManager.default.homeDirectoryForCurrentUser
         let rules = CleanupRule.defaultRules(homeDirectory: homeDirectory)
         let validator = PathSafetyValidator(
@@ -23,6 +24,15 @@ public enum XCleanCLI {
             ui.runInteractiveClean(report: report, cleaner: cleaner)
         case "scan":
             ui.printReport(report)
+        case "update":
+            let result = updater.update(currentExecutablePath: currentExecutablePath())
+            if !result.standardOutput.isEmpty {
+                print(result.standardOutput, terminator: "")
+            }
+            if !result.standardError.isEmpty {
+                fputs(result.standardError, stderr)
+            }
+            Foundation.exit(result.exitCode == 0 ? 0 : 1)
         case "version", "--version", "-v":
             print(version)
         case "-h", "--help", "help":
@@ -41,8 +51,16 @@ public enum XCleanCLI {
               xclean           Start interactive cleanup
               xclean clean     Start interactive cleanup
               xclean scan      Scan only
+              xclean update    Reinstall the latest version
               xclean version   Print version
             """
         )
+    }
+
+    private static func currentExecutablePath() -> String {
+        if let bundlePath = Bundle.main.executableURL?.path {
+            return bundlePath
+        }
+        return ProcessInfo.processInfo.arguments.first ?? "xclean"
     }
 }

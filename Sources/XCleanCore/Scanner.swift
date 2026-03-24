@@ -56,7 +56,8 @@ public struct Scanner {
     private func scanUnavailableSimulators(rule: CleanupRule) -> ScannedItem {
         let result = processRunner.run(
             executable: "/usr/bin/xcrun",
-            arguments: ["simctl", "list", "devices", "unavailable"]
+            arguments: ["simctl", "list", "devices", "unavailable"],
+            environment: nil
         )
 
         guard result.exitCode == 0 else {

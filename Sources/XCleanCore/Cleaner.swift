@@ -50,7 +50,8 @@ public struct Cleaner {
     private func deleteUnavailableSimulators(item: ScannedItem) -> DeleteResult {
         let result = processRunner.run(
             executable: "/usr/bin/xcrun",
-            arguments: ["simctl", "delete", "unavailable"]
+            arguments: ["simctl", "delete", "unavailable"],
+            environment: nil
         )
 
         guard result.exitCode == 0 else {
