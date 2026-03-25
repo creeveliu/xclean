@@ -2,6 +2,163 @@ import XCTest
 @testable import XCleanCore
 
 final class UpdaterTests: XCTestCase {
+    func testRunUpdateCommandPrintsCurrentVersionAndLatestMessageWhenUpToDate() {
+        let updater = MockUpdating(
+            checkResult: .success(
+                UpdateCheckStatus(currentVersion: "0.1.7", latestVersion: "0.1.7", needsUpdate: false)
+            )
+        )
+        var output: [String] = []
+        var errors: [String] = []
+
+        let exitCode = XCleanCLI.runUpdateCommand(
+            version: "0.1.7",
+            currentExecutablePath: "/Users/test/.local/bin/xclean",
+            updater: updater,
+            stdout: { output.append($0) },
+            stderr: { errors.append($0) }
+        )
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(
+            output,
+            [
+                "当前版本：0.1.7\n",
+                "正在检查更新中...\n",
+                "当前是最新版本（0.1.7）\n"
+            ]
+        )
+        XCTAssertTrue(errors.isEmpty)
+        XCTAssertFalse(updater.didRunInstall)
+    }
+
+    func testRunUpdateCommandPrintsNewVersionAndRunsInstallWhenUpgradeIsAvailable() {
+        let updater = MockUpdating(
+            checkResult: .success(
+                UpdateCheckStatus(currentVersion: "0.1.7", latestVersion: "0.1.8", needsUpdate: true)
+            ),
+            installResult: ProcessResult(exitCode: 0, standardOutput: "installed\n", standardError: "")
+        )
+        var output: [String] = []
+        var errors: [String] = []
+
+        let exitCode = XCleanCLI.runUpdateCommand(
+            version: "0.1.7",
+            currentExecutablePath: "/Users/test/.local/bin/xclean",
+            updater: updater,
+            stdout: { output.append($0) },
+            stderr: { errors.append($0) }
+        )
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(
+            output,
+            [
+                "当前版本：0.1.7\n",
+                "正在检查更新中...\n",
+                "发现新版本：0.1.8，开始安装...\n",
+                "installed\n"
+            ]
+        )
+        XCTAssertTrue(errors.isEmpty)
+        XCTAssertTrue(updater.didRunInstall)
+    }
+
+    func testRunUpdateCommandReportsCheckFailureAndDoesNotInstall() {
+        let updater = MockUpdating(
+            checkResult: .failure(.remoteLookupFailed("network error"))
+        )
+        var output: [String] = []
+        var errors: [String] = []
+
+        let exitCode = XCleanCLI.runUpdateCommand(
+            version: "0.1.7",
+            currentExecutablePath: "/Users/test/.local/bin/xclean",
+            updater: updater,
+            stdout: { output.append($0) },
+            stderr: { errors.append($0) }
+        )
+
+        XCTAssertEqual(exitCode, 1)
+        XCTAssertEqual(
+            output,
+            [
+                "当前版本：0.1.7\n",
+                "正在检查更新中...\n"
+            ]
+        )
+        XCTAssertEqual(errors, ["network error\n"])
+        XCTAssertFalse(updater.didRunInstall)
+    }
+
+    func testCheckForUpdatesTreatsMatchingNormalizedVersionsAsUpToDate() {
+        let runner = MockProcessRunner(
+            nextResult: ProcessResult(exitCode: 0, standardOutput: "v0.1.7\n", standardError: "")
+        )
+        let updater = Updater(processRunner: runner)
+
+        let result = updater.checkForUpdates(currentVersion: "0.1.7")
+
+        switch result {
+        case .success(let status):
+            XCTAssertEqual(status.currentVersion, "0.1.7")
+            XCTAssertEqual(status.latestVersion, "0.1.7")
+            XCTAssertFalse(status.needsUpdate)
+        case .failure(let error):
+            XCTFail("Expected success, got \(error)")
+        }
+    }
+
+    func testCheckForUpdatesDetectsWhenRemoteVersionIsNewer() {
+        let runner = MockProcessRunner(
+            nextResult: ProcessResult(exitCode: 0, standardOutput: "v0.1.8\n", standardError: "")
+        )
+        let updater = Updater(processRunner: runner)
+
+        let result = updater.checkForUpdates(currentVersion: "0.1.7")
+
+        switch result {
+        case .success(let status):
+            XCTAssertEqual(status.currentVersion, "0.1.7")
+            XCTAssertEqual(status.latestVersion, "0.1.8")
+            XCTAssertTrue(status.needsUpdate)
+        case .failure(let error):
+            XCTFail("Expected success, got \(error)")
+        }
+    }
+
+    func testCheckForUpdatesFailsWhenRemoteVersionIsMalformed() {
+        let runner = MockProcessRunner(
+            nextResult: ProcessResult(exitCode: 0, standardOutput: "latest\n", standardError: "")
+        )
+        let updater = Updater(processRunner: runner)
+
+        let result = updater.checkForUpdates(currentVersion: "0.1.7")
+
+        switch result {
+        case .success(let status):
+            XCTFail("Expected failure, got \(status)")
+        case .failure(let error):
+            XCTAssertEqual(error.localizedDescription, "Received malformed remote version: latest")
+        }
+    }
+
+    func testCheckForUpdatesFailsWhenRemoteLookupFails() {
+        let runner = MockProcessRunner(
+            nextResult: ProcessResult(exitCode: 1, standardOutput: "", standardError: "network error")
+        )
+        let updater = Updater(processRunner: runner)
+
+        let result = updater.checkForUpdates(currentVersion: "0.1.7")
+
+        switch result {
+        case .success(let status):
+            XCTFail("Expected failure, got \(status)")
+        case .failure(let error):
+            XCTAssertEqual(error.localizedDescription, "network error")
+        }
+    }
+
     func testUpdateDefaultsToCloudflareInstallerURL() {
         var capturedArguments: [String] = []
         let runner = MockProcessRunner(
@@ -89,5 +246,28 @@ final class UpdaterTests: XCTestCase {
         _ = updater.uninstall(currentExecutablePath: executable.path)
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: installDir.path))
+    }
+}
+
+private final class MockUpdating: Updating {
+    private let checkResult: Result<UpdateCheckStatus, UpdateCheckError>
+    private let installResult: ProcessResult
+    private(set) var didRunInstall = false
+
+    init(
+        checkResult: Result<UpdateCheckStatus, UpdateCheckError>,
+        installResult: ProcessResult = ProcessResult(exitCode: 0, standardOutput: "", standardError: "")
+    ) {
+        self.checkResult = checkResult
+        self.installResult = installResult
+    }
+
+    func checkForUpdates(currentVersion: String) -> Result<UpdateCheckStatus, UpdateCheckError> {
+        checkResult
+    }
+
+    func update(currentExecutablePath: String) -> ProcessResult {
+        didRunInstall = true
+        return installResult
     }
 }

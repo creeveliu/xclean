@@ -16,7 +16,7 @@ curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh
 
 ```bash
 curl -fsSL https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/install.sh | \
-  XCLEAN_INSTALL_VERSION=v0.1.7 bash
+  XCLEAN_INSTALL_VERSION=v0.1.8 bash
 ```
 
 本地开发安装：
@@ -62,7 +62,7 @@ xclean --version
 - `xclean scan`
   只扫描可清理的 Xcode 相关垃圾文件并输出结果，不会执行删除。
 - `xclean update`
-  重新执行安装脚本，并在当前安装目录中替换现有二进制文件。
+  先检查是否有新版本；如果有，再在当前安装目录中安装更新。
 - `xclean uninstall`
   删除当前二进制文件；如果安装目录变为空，也会一并删除该目录。
 - `xclean --version`
@@ -158,8 +158,8 @@ xclean update
 
 ```bash
 git push
-git tag v0.1.7
-git push origin v0.1.7
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
 GitHub Actions 随后会自动：
@@ -172,7 +172,7 @@ GitHub Actions 随后会自动：
 如果需要手动执行 R2 同步，可以使用备用命令：
 
 ```bash
-bash scripts/upload-r2.sh 0.1.7
+bash scripts/upload-r2.sh 0.1.8
 ```
 
 ## 发布 `curl | bash`
@@ -194,15 +194,15 @@ https://github.com/creeveliu/xclean/releases
 ```text
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-arm64.tar.gz
 https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/latest/download/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/xclean-macos-arm64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/xclean-macos-x86_64.tar.gz
-https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.7/sha256sums.txt
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.8/xclean-macos-arm64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.8/xclean-macos-x86_64.tar.gz
+https://pub-d400c4fab9ed43a4b869b5bd85b09934.r2.dev/xclean/releases/download/v0.1.8/sha256sums.txt
 ```
 
 上面的对象 key 也可以用下面这条备用命令手动上传：
 
 ```bash
-bash scripts/upload-r2.sh 0.1.7
+bash scripts/upload-r2.sh 0.1.8
 ```
 
 如果之后还要把安装入口迁移到你自己的域名，可以这样做：
@@ -211,4 +211,4 @@ bash scripts/upload-r2.sh 0.1.7
 2. 在该脚本中把 `XCLEAN_RELEASE_BASE_URL` 设置为真实的 release 基础地址。
 3. 上传名为 `xclean-macos-arm64.tar.gz` 和 `xclean-macos-x86_64.tar.gz` 的预构建压缩包。
 4. 如果需要保留源码构建回退机制，可以继续保留 `XCLEAN_REPO_URL` 和 `XCLEAN_INSTALL_REF`。
-5. 如果希望安装固定到某个 tag，可设置 `XCLEAN_INSTALL_VERSION=v0.1.7`。
+5. 如果希望安装固定到某个 tag，可设置 `XCLEAN_INSTALL_VERSION=v0.1.8`。

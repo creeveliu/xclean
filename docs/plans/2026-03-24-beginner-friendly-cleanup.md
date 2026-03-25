@@ -1,247 +1,247 @@
-# Beginner-Friendly Cleanup Implementation Plan
+# 面向新手的清理流程实现计划
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **给 Claude：** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Rework `xclean` interactive cleanup so non-expert users choose from user-friendly cleanup tiers with bilingual prompts instead of raw technical categories.
+**目标：** 重构 `xclean` 的交互式清理流程，让非专业用户通过更友好的清理层级和双语提示来决策，而不是直接面对技术分类名词。
 
-**Architecture:** Keep scanning and deletion behavior unchanged, but introduce a user-facing cleanup tier model and a lightweight localization layer. Drive `TerminalUI` from localized tier groupings and localized rule copy while preserving safety checks and rule titles.
+**架构：** 保持扫描和删除行为不变，但引入用户可见的清理层级模型和轻量级本地化层。`TerminalUI` 改为按本地化层级分组和本地化规则说明来驱动，同时保留既有安全检查和规则标题。
 
-**Tech Stack:** SwiftPM, Swift Foundation, XCTest
+**技术栈：** SwiftPM、Swift Foundation、XCTest
 
 ---
 
-### Task 1: Add cleanup tiers to the core model
+### Task 1: 在核心模型中加入清理层级
 
 **Files:**
 - Modify: `Sources/XCleanCore/Models.swift`
 - Test: `Tests/XCleanCoreTests/RuleDefinitionTests.swift`
 
-**Step 1: Write the failing test**
+**Step 1: 先写失败测试**
 
-Add assertions in `Tests/XCleanCoreTests/RuleDefinitionTests.swift` verifying:
+在 `Tests/XCleanCoreTests/RuleDefinitionTests.swift` 中加入断言，验证：
 
-- `DerivedData`, `UserData/Previews`, and `simctl-unavailable` map to the safe tier
-- `DocumentationCache`, device support, and logs map to the clean-if-needed tier
-- `CoreSimulator/Devices` maps to the careful tier
+- `DerivedData`、`UserData/Previews` 和 `simctl-unavailable` 归属到 safe 层级
+- `DocumentationCache`、device support 和 logs 归属到 clean-if-needed 层级
+- `CoreSimulator/Devices` 归属到 careful 层级
 
-**Step 2: Run test to verify it fails**
+**Step 2: 运行测试并确认它先失败**
 
 Run: `swift test --filter RuleDefinitionTests`
-Expected: FAIL because no cleanup tier model exists yet
+Expected: FAIL，因为当前还没有清理层级模型
 
-**Step 3: Write minimal implementation**
+**Step 3: 写最小实现**
 
-In `Sources/XCleanCore/Models.swift`:
+在 `Sources/XCleanCore/Models.swift` 中：
 
-- add a `CleanupTier` enum for `safe`, `cleanIfNeeded`, and `careful`
-- add a `tier` property to `CleanupRule`
-- populate each default rule with the approved tier assignment
+- 新增 `CleanupTier` 枚举，包含 `safe`、`cleanIfNeeded`、`careful`
+- 给 `CleanupRule` 增加 `tier` 属性
+- 按批准后的层级映射填充默认规则
 
-**Step 4: Run test to verify it passes**
+**Step 4: 再跑测试并确认通过**
 
 Run: `swift test --filter RuleDefinitionTests`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/Sources/XCleanCore/Models.swift /Users/cl/Projects/xclean/Tests/XCleanCoreTests/RuleDefinitionTests.swift
 git commit -m "feat: add user-facing cleanup tiers"
 ```
 
-### Task 2: Add lightweight language detection and shared localized strings
+### Task 2: 加入轻量级语言检测和共享本地化字符串
 
 **Files:**
 - Create: `Sources/XCleanCore/Localization.swift`
 - Test: `Tests/XCleanCoreTests/LocalizationTests.swift`
 
-**Step 1: Write the failing test**
+**Step 1: 先写失败测试**
 
-Create `Tests/XCleanCoreTests/LocalizationTests.swift` covering:
+创建 `Tests/XCleanCoreTests/LocalizationTests.swift`，覆盖：
 
-- `zh-Hans`, `zh-CN`, and `zh` resolve to Chinese
-- `en-US` and unknown values fall back to English
-- tier titles and shared UI labels return the expected localized strings
+- `zh-Hans`、`zh-CN`、`zh` 都解析为中文
+- `en-US` 和未知值回退到英文
+- 层级标题和共享 UI 标签返回预期的本地化字符串
 
-**Step 2: Run test to verify it fails**
+**Step 2: 运行测试并确认它先失败**
 
 Run: `swift test --filter LocalizationTests`
-Expected: FAIL because localization types do not exist
+Expected: FAIL，因为本地化类型还不存在
 
-**Step 3: Write minimal implementation**
+**Step 3: 写最小实现**
 
-Create `Sources/XCleanCore/Localization.swift` with:
+创建 `Sources/XCleanCore/Localization.swift`，内容包括：
 
-- a small `AppLanguage` enum for `english` and `simplifiedChinese`
-- language detection from preferred identifiers
-- centralized localized UI strings for tier names, tier descriptions, prompts, confirmations, and headings
+- 一个很小的 `AppLanguage` 枚举，包含 `english` 和 `simplifiedChinese`
+- 基于用户首选语言标识的检测逻辑
+- 集中管理层级名、层级描述、提示语、确认文案和标题文案
 
-**Step 4: Run test to verify it passes**
+**Step 4: 再跑测试并确认通过**
 
 Run: `swift test --filter LocalizationTests`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/Sources/XCleanCore/Localization.swift /Users/cl/Projects/xclean/Tests/XCleanCoreTests/LocalizationTests.swift
 git commit -m "feat: add lightweight cli localization"
 ```
 
-### Task 3: Add localized decision-oriented rule copy
+### Task 3: 加入本地化、面向决策的规则说明文案
 
 **Files:**
 - Modify: `Sources/XCleanCore/Models.swift`
 - Test: `Tests/XCleanCoreTests/RuleDefinitionTests.swift`
 
-**Step 1: Write the failing test**
+**Step 1: 先写失败测试**
 
-Extend `Tests/XCleanCoreTests/RuleDefinitionTests.swift` to assert each representative rule can provide:
+扩展 `Tests/XCleanCoreTests/RuleDefinitionTests.swift`，断言每个代表性规则都能提供：
 
-- localized "what it is" text
-- localized "after deletion" text
-- localized "when to clean" text
+- 本地化的 “what it is” 文案
+- 本地化的 “after deletion” 文案
+- 本地化的 “when to clean” 文案
 
-Use at least one English and one Chinese expectation for `DerivedData` and `CoreSimulator/Devices`.
+至少使用 `DerivedData` 和 `CoreSimulator/Devices` 各写一条英文和中文期望。
 
-**Step 2: Run test to verify it fails**
+**Step 2: 运行测试并确认它先失败**
 
 Run: `swift test --filter RuleDefinitionTests`
-Expected: FAIL because the rule model does not expose localized decision copy
+Expected: FAIL，因为规则模型当前没有暴露本地化决策文案
 
-**Step 3: Write minimal implementation**
+**Step 3: 写最小实现**
 
-In `Sources/XCleanCore/Models.swift`:
+在 `Sources/XCleanCore/Models.swift` 中：
 
-- add localized presentation helpers on `CleanupRule`
-- keep rule titles unchanged
-- provide the approved decision-oriented copy for all default rules in English and Chinese
+- 为 `CleanupRule` 增加本地化展示 helper
+- 保持规则标题不变
+- 为所有默认规则补齐英文和中文的面向决策文案
 
-**Step 4: Run test to verify it passes**
+**Step 4: 再跑测试并确认通过**
 
 Run: `swift test --filter RuleDefinitionTests`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/Sources/XCleanCore/Models.swift /Users/cl/Projects/xclean/Tests/XCleanCoreTests/RuleDefinitionTests.swift
 git commit -m "feat: add localized cleanup guidance"
 ```
 
-### Task 4: Rework terminal menus around cleanup tiers
+### Task 4: 按清理层级重构终端菜单
 
 **Files:**
 - Modify: `Sources/XCleanCore/TerminalUI.swift`
 - Modify: `Sources/XCleanCore/CLI.swift`
 - Test: `Tests/XCleanCoreTests/TerminalUITests.swift`
 
-**Step 1: Write the failing test**
+**Step 1: 先写失败测试**
 
-Create `Tests/XCleanCoreTests/TerminalUITests.swift` to validate:
+创建 `Tests/XCleanCoreTests/TerminalUITests.swift`，验证：
 
-- the top-level menu groups items by cleanup tier
-- tier headers render localized tier names and descriptions
-- item rendering shows localized decision copy instead of raw recommendation labels
-- confirmation output includes localized impact text
+- 顶层菜单按清理层级分组
+- 层级标题渲染本地化的层级名和说明
+- 条目渲染展示本地化的面向决策说明，而不是原始 recommendation label
+- 确认输出包含本地化的影响说明
 
-Prefer extracting pure rendering helpers from `TerminalUI` so tests can assert generated strings without mocking stdin.
+优先从 `TerminalUI` 中提取纯渲染 helper，这样测试可以直接断言生成字符串，而不必 mock stdin。
 
-**Step 2: Run test to verify it fails**
+**Step 2: 运行测试并确认它先失败**
 
 Run: `swift test --filter TerminalUITests`
-Expected: FAIL because the UI still renders technical categories and English-only prompts
+Expected: FAIL，因为 UI 目前仍按技术分类和英文提示渲染
 
-**Step 3: Write minimal implementation**
+**Step 3: 写最小实现**
 
-In `Sources/XCleanCore/TerminalUI.swift`:
+在 `Sources/XCleanCore/TerminalUI.swift` 中：
 
-- inject or derive the current app language
-- replace the category-first menu with a tier-first menu
-- render localized tier descriptions
-- render each item with localized decision-oriented sections
-- change deletion confirmation and result headings to localized strings
+- 注入或推导当前语言
+- 用清理层级替换原来的 category-first 菜单
+- 渲染本地化层级说明
+- 用本地化的决策说明渲染每个条目
+- 把删除确认和结果标题改成本地化字符串
 
-In `Sources/XCleanCore/CLI.swift`:
+在 `Sources/XCleanCore/CLI.swift` 中：
 
-- construct `TerminalUI` with the resolved language, or allow `TerminalUI` to resolve it internally in a testable way
+- 用已解析出的语言来构建 `TerminalUI`，或者让 `TerminalUI` 在内部以可测试的方式解析
 
-**Step 4: Run test to verify it passes**
+**Step 4: 再跑测试并确认通过**
 
 Run: `swift test --filter TerminalUITests`
 Expected: PASS
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/Sources/XCleanCore/TerminalUI.swift /Users/cl/Projects/xclean/Sources/XCleanCore/CLI.swift /Users/cl/Projects/xclean/Tests/XCleanCoreTests/TerminalUITests.swift
 git commit -m "feat: add tier-based localized cleanup flow"
 ```
 
-### Task 5: Update documentation to match the new behavior
+### Task 5: 更新文档以匹配新行为
 
 **Files:**
 - Modify: `README.md`
 
-**Step 1: Write the failing check**
+**Step 1: 写失败检查**
 
-Manually inspect `README.md` and note that it does not describe:
+手工检查 `README.md`，确认它目前还没有描述：
 
-- tier-based cleanup flow
-- bilingual prompts
-- the distinction between safe, clean-if-needed, and careful cleanup
+- 基于层级的清理流程
+- 双语提示
+- safe、clean-if-needed、careful 三种层级的区别
 
-**Step 2: Run check to verify mismatch**
+**Step 2: 运行检查并确认不匹配**
 
 Run: `rg -n "Safe Cleanup|Clean If Needed|Careful Cleanup|安全清理|按需清理|谨慎清理" README.md`
 Expected: no matches
 
-**Step 3: Write minimal implementation**
+**Step 3: 写最小实现**
 
-Update `README.md` to explain:
+更新 `README.md`，说明：
 
-- the new tiered interactive experience
-- that prompts display in English or Simplified Chinese based on system language
-- that `CoreSimulator/Devices` appears under careful cleanup because it may remove simulator-local app data
+- 新的层级化交互体验
+- 提示会根据系统语言显示英文或简体中文
+- `CoreSimulator/Devices` 会出现在谨慎清理中，因为它可能删除模拟器本地 App 数据
 
-**Step 4: Run check to verify it passes**
+**Step 4: 再跑检查并确认通过**
 
 Run: `rg -n "Safe Cleanup|Clean If Needed|Careful Cleanup|安全清理|按需清理|谨慎清理" README.md`
 Expected: matches present
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/README.md
 git commit -m "docs: describe tiered localized cleanup flow"
 ```
 
-### Task 6: Run project verification
+### Task 6: 跑项目校验
 
 **Files:**
 - Modify: none
 
-**Step 1: Run full test suite**
+**Step 1: 跑完整测试**
 
 Run: `swift test`
 Expected: PASS
 
-**Step 2: Verify CLI help**
+**Step 2: 校验 CLI help**
 
 Run: `swift run xclean --help`
-Expected: PASS and usage text prints successfully
+Expected: PASS，且 usage 文本能正常输出
 
-**Step 3: Verify CLI version**
+**Step 3: 校验 CLI version**
 
 Run: `swift run xclean --version`
-Expected: PASS and current version prints successfully
+Expected: PASS，且输出当前版本
 
-**Step 4: Review diffs**
+**Step 4: 审查 diff**
 
 Run: `git diff -- Sources/XCleanCore README.md Tests/XCleanCoreTests`
 Expected: only intended tiering/localization/documentation changes
 
-**Step 5: Commit**
+**Step 5: 提交**
 
 ```bash
 git add /Users/cl/Projects/xclean/Sources/XCleanCore /Users/cl/Projects/xclean/Tests/XCleanCoreTests /Users/cl/Projects/xclean/README.md

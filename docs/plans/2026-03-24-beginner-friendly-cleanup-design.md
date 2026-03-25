@@ -1,59 +1,59 @@
-# Beginner-Friendly Cleanup Design
+# 面向新手的清理流程设计
 
-**Date:** 2026-03-24
+**日期：** 2026-03-24
 
-**Goal:** Make `xclean` understandable for non-expert users by shifting the interactive cleanup flow from technical directory categories to decision-oriented cleanup tiers, while adding lightweight bilingual prompts.
+**目标：** 让 `xclean` 对非专业用户更易理解，把交互式清理流程从技术目录分类切换为面向决策的清理层级，并加入轻量级双语提示。
 
-## Problem
+## 问题
 
-The current CLI exposes Xcode-specific names such as `DerivedData`, `DeviceSupport`, and `CoreSimulator/Devices` as the primary decision surface. Even though each item already has a technical description and a recommendation label, the interface still assumes the user understands what these directories do.
+当前 CLI 把 `DerivedData`、`DeviceSupport`、`CoreSimulator/Devices` 这类 Xcode 技术名词直接暴露为用户的主要决策界面。虽然每个条目已经带有技术说明和建议标签，但整个界面仍然默认用户理解这些目录的作用。
 
-That creates two usability issues:
+这会带来两个可用性问题：
 
-1. Users must understand Xcode internals before they can decide what to delete.
-2. The current prompts are English-only, which increases friction for users whose system language is Chinese.
+1. 用户必须先理解 Xcode 内部机制，才能决定删什么。
+2. 当前提示文案只有英文，对于系统语言为中文的用户阻力更大。
 
-## Product Direction
+## 产品方向
 
-The default interactive flow should help users answer a practical question:
+默认交互流程应当帮助用户回答一个更实际的问题：
 
-"Can I delete this safely, and what happens if I do?"
+“这个能不能安全删除？删了之后会怎样？”
 
-Instead of leading with engineering-oriented categories, the CLI should lead with cleanup tiers based on user impact:
+CLI 不应该继续以工程内部分类为入口，而应该用更符合用户感知的“清理影响层级”来组织：
 
 - `Safe Cleanup`
 - `Clean If Needed`
 - `Careful Cleanup`
 
-For Chinese systems, the same tiers should appear as:
+在中文系统上，同一组层级显示为：
 
 - `安全清理`
 - `按需清理`
 - `谨慎清理`
 
-## Tier Definitions
+## 层级定义
 
 ### Safe Cleanup
 
-Use this tier for items that are primarily disposable caches or cleanup operations whose effects are straightforward and temporary.
+这一层级用于主要属于临时缓存、删除影响简单且短暂的条目。
 
-Rules in this tier:
+属于该层级的规则：
 
 - `DerivedData`
 - `UserData/Previews`
 - `Unavailable Simulators`
 
-User meaning:
+用户视角的含义：
 
-- deleting them does not affect project source files
-- the data will be regenerated later if needed
-- this is the best first stop for most users
+- 删除它们不会影响项目源码
+- 需要时数据会自动重新生成
+- 对大多数用户来说，这是最适合开始尝试的第一站
 
 ### Clean If Needed
 
-Use this tier for items that are still generally deletable, but may trigger downloads, rebuilds, or setup work the next time a related feature is used.
+这一层级用于通常也可以删除，但下次使用相关功能时可能触发重新下载、重新构建或重新准备的条目。
 
-Rules in this tier:
+属于该层级的规则：
 
 - `DocumentationCache`
 - `iOS DeviceSupport`
@@ -61,127 +61,126 @@ Rules in this tier:
 - `Xcode Logs`
 - `CoreSimulator Logs`
 
-User meaning:
+用户视角的含义：
 
-- safe in most cases
-- not always worth deleting unless the user wants to reclaim space
-- should explain that some related tools or devices may take time to prepare again later
+- 大多数情况下是安全的
+- 除非用户确实想回收空间，否则未必值得删除
+- 应明确提示：未来相关工具或设备可能需要重新准备，耗费一些时间
 
 ### Careful Cleanup
 
-Use this tier for items that are valid cleanup targets but require the user to decide whether the stored environment still matters.
+这一层级用于虽然也是有效清理目标，但需要用户判断其中环境是否仍有价值的条目。
 
-Rules in this tier:
+属于该层级的规则：
 
 - `CoreSimulator/Devices`
 
-User meaning:
+用户视角的含义：
 
-- this can remove simulator environments and local simulator app data
-- still allowed and useful
-- should not be presented as forbidden or hidden
-- should be separated from the default "easy wins" so users choose it deliberately
+- 这可能会移除模拟器环境以及模拟器本地 App 数据
+- 仍然允许清理，也确实有价值
+- 不应被隐藏或当成禁止项
+- 应与默认的“低风险收益项”分开，促使用户更有意识地选择
 
-## Content Strategy
+## 内容策略
 
-Each cleanup item should be presented with decision-oriented copy, not just technical metadata.
+每个清理条目都应使用面向决策的文案，而不是只展示技术元数据。
 
-Each localized rule description should cover:
+每个本地化规则说明都应覆盖：
 
-- what it is
-- what happens after deletion
-- when it makes sense to clean it
+- 它是什么
+- 删除后会怎样
+- 什么时候适合清理
 
-Example structure:
+示例结构：
 
 - `What it is`
 - `After deletion`
 - `When to clean`
 
-The rule's technical title should remain unchanged, so the output still maps clearly to real Xcode paths and terminology.
+规则的技术标题应保持不变，这样输出仍然能清楚映射到真实路径和技术术语。
 
-## Localization Strategy
+## 本地化策略
 
-Use lightweight in-process localization instead of introducing a heavy resource system.
+使用轻量级进程内本地化，而不是引入重量级资源系统。
 
-Initial language support:
+首批语言支持：
 
-- English
-- Simplified Chinese
+- 英文
+- 简体中文
 
-Behavior:
+行为规则：
 
-- inspect the user's preferred language at runtime
-- if the preferred language starts with `zh`, use Simplified Chinese prompts
-- otherwise default to English
+- 在运行时检测用户的首选语言
+- 如果首选语言以 `zh` 开头，则使用简体中文提示
+- 否则默认使用英文
 
-Scope of localization:
+本地化覆盖范围：
 
-- menu titles
-- menu descriptions
-- prompts
-- confirmation text
-- action result headings
-- decision-oriented rule copy
+- 菜单标题
+- 菜单说明
+- 提示语
+- 确认文案
+- 操作结果标题
+- 面向决策的规则说明
 
-Non-localized elements:
+不本地化的内容：
 
-- technical rule titles such as `DerivedData`
-- actual filesystem paths
-- command names
+- `DerivedData` 这类技术规则标题
+- 实际文件系统路径
+- 命令名称
 
-## Interaction Changes
+## 交互改动
 
-The main interactive screen should present cleanup tiers first, not technical categories.
+主交互界面应先展示清理层级，而不是技术分类。
 
-Suggested flow:
+建议流程：
 
-1. Show tier list with total reclaimable size and actionable item count.
-2. Let the user choose a tier.
-3. Within a tier, list the concrete cleanup items with localized decision-oriented copy.
-4. Let the user select specific items or choose all actionable items within that tier.
-5. Before deletion, show a localized confirmation summary emphasizing impact rather than raw path names alone.
+1. 显示层级列表，附带总可回收空间和可操作条目数。
+2. 让用户先选择某个层级。
+3. 在层级内列出具体清理条目，并展示本地化、面向决策的说明。
+4. 让用户选择具体条目，或选择该层级内全部可操作项。
+5. 删除前展示本地化确认摘要，更强调影响说明，而不是只列原始路径。
 
-The scan-only output may continue to show technical categories for now unless the implementation cost to align both outputs stays low.
+仅扫描输出暂时可以继续按技术分类展示，除非后续发现统一两边的实现成本足够低。
 
-## Model and Architecture Changes
+## 模型与架构改动
 
-The existing architecture can be preserved with focused extensions.
+现有架构可以保留，只需要做聚焦扩展。
 
-Expected changes:
+预期改动：
 
-- keep technical rule categories in `Models.swift` for internal organization if needed
-- add a user-facing cleanup tier concept separate from the existing technical category
-- add a lightweight localization layer to centralize UI strings
-- enrich rule metadata so the UI can render localized, decision-oriented explanations
-- update `TerminalUI.swift` to drive menus by cleanup tier instead of technical category
+- 如有需要，继续在 `Models.swift` 中保留技术分类供内部组织使用
+- 新增独立于技术分类的用户可见“清理层级”概念
+- 新增轻量级本地化层，集中管理 UI 文案
+- 丰富规则元数据，让 UI 能渲染本地化、面向决策的说明
+- 更新 `TerminalUI.swift`，改为按清理层级驱动菜单，而不是按技术分类
 
-## Safety Constraints
+## 安全约束
 
-This design does not change the existing product safety boundaries.
+该设计不改变现有产品安全边界。
 
-The implementation must preserve:
+实现必须保留：
 
-- cleanup only under the current user's home directory
-- opt-in deletion only
-- explicit confirmation before deletion
-- graceful handling of missing paths
-- partial failures not blocking other deletions
+- 只清理当前用户主目录下的内容
+- 删除必须显式 opt-in
+- 删除前必须明确确认
+- 缺失路径要优雅处理
+- 单项失败不能阻塞其它删除
 
-`CoreSimulator/Devices` remains opt-in and visible, but isolated in `Careful Cleanup` / `谨慎清理`.
+`CoreSimulator/Devices` 仍然是 opt-in 且可见的，但会被隔离到 `Careful Cleanup` / `谨慎清理` 下。
 
-## Testing Expectations
+## 测试预期
 
-Add or update tests to cover:
+需要新增或更新测试，覆盖：
 
-- tier assignment for default rules
-- language selection fallback behavior
-- localized string output for English and Chinese
-- interactive rendering logic where feasible through focused unit tests
+- 默认规则的层级归属
+- 语言选择与回退逻辑
+- 英文和中文的本地化字符串输出
+- 在可行范围内，通过聚焦的单元测试覆盖交互渲染逻辑
 
-Minimum verification before claiming completion:
+在声明完成前，至少验证：
 
 - `swift test`
 - `swift run xclean --help`
 - `swift run xclean --version`
-

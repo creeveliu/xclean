@@ -1,160 +1,160 @@
-# Simulator Device Selection Design
+# 模拟器设备选择设计
 
-## Summary
+## 概要
 
-Change `xclean` so that the `CoreSimulator/Devices` cleanup flow no longer deletes the entire directory at once.
-When the user selects that cleanup target, `xclean` should enumerate individual simulator device subdirectories, show device-friendly labels, and let the user delete selected devices only.
+调整 `xclean`，让 `CoreSimulator/Devices` 的清理流程不再一次性删除整个目录。
+当用户选择该清理目标时，`xclean` 应枚举单个模拟器设备子目录，用更友好的设备标签展示，并只删除用户选中的设备。
 
-## Problem
+## 问题
 
-The current careful cleanup confirmation for `CoreSimulator/Devices` is too coarse.
-It asks the user to delete the whole simulator device store, which increases the chance of wiping every simulator environment and all simulator-local app data in one action.
+当前对 `CoreSimulator/Devices` 的谨慎清理确认过于粗糙。
+它要求用户删除整个模拟器设备存储目录，这会显著增加一次性清空所有模拟器环境和本地 App 数据的风险。
 
-This is especially risky for users who only want to free space from old or unused simulator devices while keeping one or two actively used environments.
+对于那些只想清理旧设备或不再使用的模拟器、但仍希望保留一两个常用环境的用户，这尤其危险。
 
-## Goals
+## 目标
 
-- Replace whole-directory deletion of `CoreSimulator/Devices` with per-device selection.
-- Show device entries using human-readable metadata instead of raw UUID directory names.
-- Keep deletion opt-in and explicit.
-- Preserve the current safety rule that only known Xcode-related paths under the user's home directory can be removed.
-- Give the user a clear recommendation to keep at least one commonly used simulator.
-- Skip devices that cannot be mapped safely from simulator metadata to on-disk directories.
+- 把 `CoreSimulator/Devices` 的整目录删除改为按设备选择。
+- 用人类可读的元数据展示设备，而不是原始 UUID 目录名。
+- 保持删除必须 opt-in 且显式确认。
+- 保留当前安全规则：只能删除用户主目录下已知的 Xcode 相关路径。
+- 明确建议用户至少保留一个常用模拟器。
+- 跳过那些无法从模拟器元数据安全映射到磁盘目录的设备。
 
-## Non-Goals
+## 非目标
 
-- Do not auto-select devices for deletion.
-- Do not delete the `CoreSimulator/Devices` root directory itself.
-- Do not add archive, signing, or non-simulator cleanup targets.
-- Do not attempt fuzzy matching between device metadata and directories.
+- 不自动预选要删除的设备。
+- 不删除 `CoreSimulator/Devices` 根目录本身。
+- 不新增 archive、签名资产或非模拟器清理目标。
+- 不尝试对设备元数据和目录做模糊匹配。
 
-## User Experience
+## 用户体验
 
-### Current behavior
+### 当前行为
 
-When the user selects the careful cleanup tier and confirms `CoreSimulator/Devices`, the confirmation screen lists the root directory and then deletes the entire folder.
+当用户选择谨慎清理层级并确认 `CoreSimulator/Devices` 时，确认界面列出的是根目录，然后直接删除整个文件夹。
 
-### New behavior
+### 新行为
 
-When the user selects `CoreSimulator/Devices`, `xclean` should:
+当用户选择 `CoreSimulator/Devices` 时，`xclean` 应当：
 
-1. Inspect child directories under `~/Library/Developer/CoreSimulator/Devices`.
-2. Load simulator metadata from `xcrun simctl list devices --json`.
-3. Build a list of removable device entries only when a device can be matched safely by UDID to a real subdirectory.
-4. Present each removable entry with:
-   - device name
-   - runtime name or identifier
-   - directory size
-   - full path
-   - a "recommended to keep" hint for one commonly used device
-5. Let the user choose one or more device entries.
-6. Confirm deletion using the selected device entries, not the root directory.
+1. 检查 `~/Library/Developer/CoreSimulator/Devices` 下的子目录。
+2. 加载 `xcrun simctl list devices --json` 的模拟器元数据。
+3. 仅当设备能通过 UDID 安全映射到真实子目录时，才构建可删除项列表。
+4. 对每个可删除项展示：
+   - 设备名称
+   - runtime 名称或标识
+   - 目录大小
+   - 完整路径
+   - 对一个常用设备的“建议保留”提示
+5. 让用户选择一个或多个设备项。
+6. 以所选设备项作为删除确认对象，而不是根目录。
 
-If some devices or directories cannot be mapped safely, `xclean` should tell the user those entries were skipped and are not part of the delete list.
+如果部分设备或目录无法安全映射，`xclean` 应告知用户这些条目已被跳过，不会加入删除列表。
 
-If no device entries can be mapped safely, `xclean` should treat the item as non-actionable for device-level deletion and explain why.
+如果没有任何设备条目能被安全映射，`xclean` 应把该项视为不可操作，并说明原因。
 
-## Recommendation Behavior
+## 建议保留逻辑
 
-`xclean` should visibly advise the user to keep one commonly used simulator.
+`xclean` 应明确建议用户保留一个常用模拟器。
 
-For the first version, the recommendation can be conservative and deterministic:
+第一版可以使用保守且确定性的策略：
 
-- mark one recognized device entry as "recommended to keep"
-- prefer the first recognized available device returned by the metadata scan
-- if the metadata later exposes a reliable last-used signal, the selection logic can be upgraded without changing the interaction model
+- 标记一个已识别设备项为 “recommended to keep”
+- 优先选择元数据扫描中遇到的第一个可识别且可用的设备
+- 如果后续元数据能稳定暴露 last-used 之类的信息，再升级推荐逻辑，而不改变交互模型
 
-This keeps the guidance simple without pretending the tool knows the user's real favorite simulator.
+这样既能给出明确指引，又不会假装工具真的知道用户最常用的是哪台设备。
 
-## Data Model Changes
+## 数据模型改动
 
-Add a dedicated model for simulator device cleanup candidates.
-The model should include at least:
+为模拟器设备清理候选项新增专用模型。
+模型至少应包含：
 
-- stable identifier for selection
-- device display name
-- runtime display value
+- 用于选择的稳定标识
+- 设备展示名称
+- runtime 展示值
 - UDID
-- absolute path
-- size in bytes
-- recommendation flag
+- 绝对路径
+- 字节大小
+- 推荐保留标记
 
-`ScannedItem` should gain optional nested candidates or equivalent structured detail so that scanner output can represent:
+`ScannedItem` 应增加可选的嵌套候选项，或等价的结构化详情，以便扫描结果能表示：
 
-- a parent cleanup item for `CoreSimulator/Devices`
-- zero or more child device candidates
-- skipped-item messaging when safe mapping is incomplete
+- 一个 `CoreSimulator/Devices` 父级清理项
+- 零个或多个子级设备候选项
+- 当安全映射不完整时的 skipped-item 提示
 
-The structure should stay generic enough that other future "expandable careful cleanup" items could reuse it.
+该结构应足够通用，以便未来其它“可展开的谨慎清理项”也能复用。
 
-## Scanner Changes
+## Scanner 改动
 
-The scanner should keep current behavior for all existing rules except `simulator-devices`.
+除了 `simulator-devices` 外，scanner 对现有规则保持当前行为不变。
 
-For `simulator-devices`, scanning should:
+对 `simulator-devices`，扫描流程应：
 
-1. Validate the root path with `PathSafetyValidator`.
-2. Read immediate child directories under `CoreSimulator/Devices`.
-3. Run `xcrun simctl list devices --json`.
-4. Parse device metadata.
-5. Match only directories whose names exactly equal a simulator UDID from metadata.
-6. Compute directory size for each matched child directory.
-7. Build candidate entries with human-readable labels.
-8. Record a detail message when entries were skipped because they could not be mapped safely.
+1. 用 `PathSafetyValidator` 验证根路径。
+2. 读取 `CoreSimulator/Devices` 下的一级子目录。
+3. 运行 `xcrun simctl list devices --json`。
+4. 解析设备元数据。
+5. 只匹配那些目录名与元数据 UDID 完全一致的目录。
+6. 计算每个已匹配子目录的大小。
+7. 构建人类可读标签的候选项。
+8. 当某些条目因无法安全映射而被跳过时，记录详情提示。
 
-If `simctl` fails, the item should remain safe-by-default:
+如果 `simctl` 失败，该项必须保持默认安全行为：
 
-- do not fall back to deleting the whole root directory
-- report the item as unavailable or non-actionable with a direct message
+- 不回退为删除整个根目录
+- 将该项报告为 unavailable 或 non-actionable，并给出直接说明
 
-## Cleaner Changes
+## Cleaner 改动
 
-Deleting simulator device candidates should remove only the chosen child directories.
+删除模拟器设备候选项时，只删除选中的子目录。
 
-Requirements:
+要求：
 
-- never delete the `CoreSimulator/Devices` parent directory as part of this flow
-- validate every selected child path with path safety rules
-- process each selected device independently
-- continue after per-item failures
-- return per-device delete results so the results screen remains granular
+- 在此流程中绝不能删除 `CoreSimulator/Devices` 父目录
+- 对每个选中的子路径都做 path safety 校验
+- 按设备独立处理删除
+- 单项失败后继续处理其它项
+- 返回按设备粒度的删除结果，以便结果界面保持细粒度
 
-The existing directory cleanup path for other rules should stay unchanged.
+其它规则的现有目录清理路径保持不变。
 
-## Terminal UI Changes
+## Terminal UI 改动
 
-The interactive flow should stay tier-based.
-Only the `simulator-devices` item gets a deeper selection step.
+交互流程仍然保持按层级组织。
+只有 `simulator-devices` 这一项需要额外的深入选择步骤。
 
-Expected UI behavior:
+预期 UI 行为：
 
-- `Careful Cleanup` still lists `CoreSimulator/Devices` as a top-level item
-- selecting that item opens a device selection view instead of immediate root-folder confirmation
-- the device selection view shows device name, runtime, size, path, and keep recommendation
-- the confirmation message lists selected devices and includes a plain warning to keep one common simulator if possible
-- skipped/unrecognized devices are summarized in a non-fatal note
+- `Careful Cleanup` 仍把 `CoreSimulator/Devices` 作为顶层项展示
+- 选择该项后，进入设备选择视图，而不是立即对根目录确认
+- 设备选择视图显示设备名、runtime、大小、路径和保留建议
+- 确认信息列出所选设备，并用朴素语言提醒用户尽量保留一个常用模拟器
+- 对被跳过/无法识别的设备给出非致命摘要提示
 
-The wording should remain plain and localized in English and Simplified Chinese.
+文案应保持直白，并支持英文与简体中文。
 
-## Safety Rules
+## 安全规则
 
-The following rules remain mandatory:
+以下规则仍然是强制性的：
 
-- only delete paths under the current user's home directory
-- only delete known Xcode-related simulator device subdirectories
-- only delete directories matched exactly to simulator UDIDs
-- do not treat missing subdirectories as fatal
-- do not let one failed deletion stop the rest
+- 只删除当前用户主目录下的路径
+- 只删除已知的 Xcode 相关模拟器设备子目录
+- 只删除与模拟器 UDID 完全匹配的目录
+- 缺失的子目录不视为致命错误
+- 单项删除失败不能阻断其余删除
 
-## Testing Strategy
+## 测试策略
 
-Add test coverage before implementation for:
+实现前应先增加测试覆盖：
 
-- simulator device scanning produces device-level candidates
-- scanner skips unmapped devices and reports that skip
-- confirmation output lists device entries instead of the root directory
-- recommended-to-keep guidance appears in the device-level UI
-- deleting selected simulator devices removes only chosen child directories
-- unmatched or unsafe paths are not deleted
+- 模拟器设备扫描能产生设备级候选项
+- scanner 会跳过无法映射的设备并报告该跳过信息
+- 确认输出列的是设备项而不是根目录
+- 设备级 UI 会显示“建议保留”提示
+- 删除选中的模拟器设备时，只删除选中的子目录
+- 不匹配或不安全的路径不会被删除
 
-Existing tests for non-simulator cleanup behavior should keep passing unchanged.
+现有非模拟器清理行为的测试应保持不变并继续通过。
