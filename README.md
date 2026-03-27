@@ -4,6 +4,15 @@
 
 [中文说明](./README.zh-CN.md)
 
+## Why xclean
+
+- Minimal by design. It focuses on a small set of common Xcode cleanup targets instead of turning into a general-purpose system cleaner.
+- Zero third-party dependencies. The package is pure SwiftPM with no external runtime or library dependency.
+- Small install footprint. The current release build binary is about `334 KB`.
+- Single executable. Install `xclean` and run it directly, without Homebrew formulas, background services, or extra daemons.
+- Easy to uninstall. Run `xclean uninstall` to remove the current binary, and the install directory is removed too if it becomes empty.
+- Safer scope. It only operates on Xcode-related paths under the current user's home directory, and deletion stays interactive and opt-in.
+
 ## Install
 
 Remote install:
